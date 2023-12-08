@@ -5,15 +5,10 @@ import readInput
 
 fun main() {
     fun isSymbol(char: Char?): Boolean {
-        return when {
-            char == null -> false
-            char.isDigit() -> false
-            char == '.' -> false
-            else -> true
-        }
+        return char != null && char.isDigit() && char != '.'
     }
 
-    fun checkForSymbol(grid: List<List<Char>>, x: Int, y: Int): Boolean {
+    fun checkForAdjacentSymbol(grid: List<List<Char>>, x: Int, y: Int): Boolean {
         for (row in -1..1) {
             for (column in -1..1) {
                 if (row == 0 && column == 0) continue
@@ -33,32 +28,29 @@ fun main() {
         val grid = input.map { it.toCharArray().toList() }
 
         grid.forEachIndexed { rowIndex, row ->
-            var number = mutableListOf<Int>()
+            var number = 0
             var nextToSymbol = false
             row.forEachIndexed { columnIndex, column ->
                 if (column.isDigit()) {
-                    number.add(column.digitToInt())
-                    if (checkForSymbol(grid, rowIndex, columnIndex)) nextToSymbol = true
+                    number = number * 10 + column.digitToInt()
+                    if (checkForAdjacentSymbol(grid, rowIndex, columnIndex)) nextToSymbol = true
                 } else {
                     if (nextToSymbol) {
-                        sum += number.joinToString(separator = "").toInt()
-                        println(number.joinToString(separator = "").toInt())
-                    }
+                        sum += number
+                        //println("Valid: $number")
+                    } //else if (number != 0) println("Invalid: $number")
 
-                    number = mutableListOf()
+                    number = 0
                     nextToSymbol = false
                 }
             }
         }
 
-
         return sum
     }
 
     fun part2(input: List<String>): Int {
-        var sum = 0
-
-        return sum
+        return 0
     }
 
     val input = readInput("day03")
