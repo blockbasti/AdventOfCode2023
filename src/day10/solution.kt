@@ -2,6 +2,7 @@ package day10
 
 import println
 import readInput
+import java.util.*
 
 private enum class Pipe(val symbol: Char) {
     START('S'),
@@ -20,13 +21,40 @@ private enum class Pipe(val symbol: Char) {
     }
 }
 
+private enum class Field(val symbol: Char) {
+    UNVISITED(' '),
+    LOOP('X'),
+    GAP('G'),
+    INSIDE('I'),
+    OUTSIDE('.'),
+}
+
 fun main() {
     fun generateMap(input: List<String>): List<List<Pipe>> {
         return input.map { line -> line.map { Pipe.fromSymbol(it) } }
     }
 
     lateinit var map: List<List<Pipe>>
-    val visitedMap: MutableList<MutableList<Int>> = MutableList(140) { MutableList(140) { 0 } }
+    var visitedMap: MutableList<MutableList<Field>> = MutableList(140) { MutableList(140) { Field.UNVISITED } }
+    val gapsHorizontal: List<Pair<Pipe?, Pipe?>> = listOf(
+        Pair(Pipe.fromSymbol('-'), Pipe.fromSymbol('-')),
+
+        Pair(Pipe.fromSymbol('L'), Pipe.fromSymbol('7')),
+        Pair(Pipe.fromSymbol('L'), Pipe.fromSymbol('F')),
+
+        Pair(Pipe.fromSymbol('J'), Pipe.fromSymbol('7')),
+        Pair(Pipe.fromSymbol('J'), Pipe.fromSymbol('F')),
+    )
+
+    val gapsVertical: List<Pair<Pipe?, Pipe?>> = listOf(
+        Pair(Pipe.NS, Pipe.NS),
+
+        Pair(Pipe.fromSymbol('J'), Pipe.fromSymbol('L')),
+        Pair(Pipe.fromSymbol('7'), Pipe.fromSymbol('L')),
+
+        Pair(Pipe.fromSymbol('J'), Pipe.fromSymbol('F')),
+        Pair(Pipe.fromSymbol('7'), Pipe.fromSymbol('F')),
+    )
 
     fun newPosition(oldX: Int, oldY: Int, currentX: Int, currentY: Int, pipe: Pipe): Pair<Int, Int> {
         return when (pipe) {
@@ -94,6 +122,7 @@ fun main() {
             if (pipes.contains(Pipe.START)) {
                 oldY = row
                 oldX = pipes.indexOf(Pipe.START)
+                visitedMap[oldY][oldX] = Field.LOOP
             }
         }
         val newPos = getNextPositionForStart(oldX, oldY)
@@ -109,14 +138,90 @@ fun main() {
             oldY = currentY.toInt()
             currentX = newPosition.first
             currentY = newPosition.second
-            visitedMap[currentY][currentX] = currentDistance
-
+            visitedMap[currentY][currentX] = Field.LOOP
         } while (lastSymbol != Pipe.START)
-        return currentDistance /2
+        return currentDistance / 2
+    }
+
+    val floodQueue: Queue<Pair<Pair<Int, Int>, Boolean>> = LinkedList()
+
+    fun isGap(x: Int, y: Int, horizontal: Boolean): Boolean {
+        if (horizontal) {
+            var tiles = Pair(map.getOrNull(y)?.getOrNull(x), map.getOrNull(y + 1)?.getOrNull(x))
+            if (gapsHorizontal.contains(tiles)) return true
+            tiles = Pair(map.getOrNull(y - 1)?.getOrNull(x), map.getOrNull(y)?.getOrNull(x))
+            if (gapsHorizontal.contains(tiles)) return true
+        } else {
+            var tiles = Pair(map.getOrNull(y)?.getOrNull(x), map.getOrNull(y)?.getOrNull(x + 1))
+            if (gapsVertical.contains(tiles)) return true
+            tiles = Pair(map.getOrNull(y)?.getOrNull(x - 1), map.getOrNull(y)?.getOrNull(x))
+            if (gapsVertical.contains(tiles)) return true
+        }
+        return false
+    }
+
+    fun floodFill() {
+        val (coords, horizontal) = floodQueue.poll()
+        val (x, y) = coords
+        if (x < 0 || x > 139 || y < 0 || y > 139) return
+        val isGap = isGap(x, y, horizontal)
+        if (visitedMap[y][x] != Field.OUTSIDE && visitedMap[y][x] != Field.LOOP && visitedMap[y][x] != Field.GAP) {
+            floodQueue.add(Pair(Pair(x, y + 1), false))
+            floodQueue.add(Pair(Pair(x, y - 1), false))
+            floodQueue.add(Pair(Pair(x + 1, y), true))
+            floodQueue.add(Pair(Pair(x - 1, y), true))
+            //floodQueue.add(Pair(x + 1, y + 1))
+            //floodQueue.add(Pair(x + 1, y - 1))
+            //floodQueue.add(Pair(x - 1, y + 1))
+            //floodQueue.add(Pair(x - 1, y + 1))
+            visitedMap[y][x] = Field.OUTSIDE
+        } else if (isGap && horizontal && visitedMap[y][x] != Field.GAP) {
+            floodQueue.add(Pair(Pair(x + 1, y), true))
+            floodQueue.add(Pair(Pair(x - 1, y), true))
+            visitedMap[y][x] = Field.GAP
+        } else if (isGap && visitedMap[y][x] != Field.GAP) {
+            floodQueue.add(Pair(Pair(x, y + 1), false))
+            floodQueue.add(Pair(Pair(x, y - 1), false))
+            visitedMap[y][x] = Field.GAP
+        }
     }
 
     fun part2(input: List<String>): Int {
-        return 0
+        visitedMap.joinToString("\n") { row -> row.joinToString("") { it.symbol.toString() } }.println()
+        println()
+        println()
+        //floodQueue.add(Pair(Pair(0, 0), false))
+        //while (floodQueue.peek() != null) {
+        //    floodFill()
+        //}
+        /*map = map.map { row ->
+            row.map { pipe ->
+                if (pipe == Pipe.fromSymbol('L')) Pipe.fromSymbol('7')
+                else if (pipe == Pipe.fromSymbol('J')) Pipe.fromSymbol('F')
+                else pipe
+            }
+        }*/
+
+        visitedMap = visitedMap.mapIndexed { rowIndex, row ->
+            var inside = false
+
+            row.mapIndexed innerMap@{ column, field ->
+                if (field == Field.LOOP && (map[rowIndex].getOrNull(column) != Pipe.EW || map[rowIndex].getOrNull(column) != Pipe.fromSymbol(
+                        'F'
+                    ) || map[rowIndex].getOrNull(column) != Pipe.fromSymbol('7'))
+                ) {
+                    inside = !inside
+                    return@innerMap field
+                }
+                if (field != Field.LOOP) {
+                    return@innerMap if (inside) Field.INSIDE else Field.OUTSIDE
+                } else return@innerMap field
+            }.toMutableList()
+        }.toMutableList()
+
+        visitedMap.joinToString("\n") { row -> row.joinToString("") { it.symbol.toString() } }.println()
+
+        return visitedMap.sumOf { row -> row.filter { it == Field.INSIDE }.size }
     }
 
     val input = readInput("day10")
