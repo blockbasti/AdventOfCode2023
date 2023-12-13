@@ -2,14 +2,19 @@ package day13
 
 import println
 import readInput
+import transpose
 
 private typealias Grid = List<String>
 
 fun main() {
+    fun transposeGrid(grid: Grid): Grid {
+        return grid.map { it.toList() }.transpose().map { it.joinToString("") }
+    }
 
-    fun findHorizontalSymmetry(grid: Grid): Int {
-        for (i in 0 until grid.size - 1) {
-            val (first, second) = listOf(grid.slice(0..i), grid.slice(i + 1 until grid.size))
+    fun findSymmetry(grid: Grid, transpose: Boolean): Int {
+        val checkGrid = if (transpose) transposeGrid(grid) else grid
+        for (i in 0 until checkGrid.size - 1) {
+            val (first, second) = listOf(checkGrid.slice(0..i), checkGrid.slice(i + 1 until checkGrid.size))
 
             val combined = if (first.size > second.size) {
                 second.zip(first.reversed())
@@ -21,34 +26,35 @@ fun main() {
         return 0
     }
 
-    fun findVerticalSymmetry(grid: Grid): Int {
-        for (i in 0 until grid.first().length - 1) {
-            val first: Grid = mutableListOf()
-            val second: Grid = mutableListOf()
-            grid.forEach {
-                var newFirst = it.substring(0, i + 1)
-                var newSecond = it.substring(i + 1, grid.first().length)
+    fun modifyGridAndGetSymmetry(grid: Grid): Int {
+        val oldHorizontal = findSymmetry(grid, false)
+        val oldVertical = findSymmetry(grid, true)
 
-                if (newFirst.length > newSecond.length) {
-                    newFirst = newFirst.reversed().substring(0, newSecond.length).reversed()
-                } else {
-                    newSecond = newSecond.substring(0, newFirst.length)
+        for (x in 0 until grid.first().length) {
+            for (y in grid.indices) {
+                val newGrid = grid.toMutableList()
+
+                newGrid[y] = newGrid[y].replaceRange(x, x + 1, if (newGrid[y][x] == '#') "." else "#")
+
+                val newHorizontal = findSymmetry(newGrid, false)
+                val newVertical = findSymmetry(newGrid, true)
+
+                if (newHorizontal != 0 && newHorizontal != oldHorizontal) {
+                    return newHorizontal * 100
+                } else if ((newVertical != 0 && newVertical != oldVertical)) {
+                    return newVertical
                 }
-                first.addLast(newFirst)
-                second.addLast(newSecond.reversed())
             }
-
-            if (first.zip(second).all { it.first == it.second }) return i + 1
         }
 
-        return 0
+        return (oldHorizontal * 100) + oldVertical
     }
 
     fun part1(input: List<String>): Int {
         val grids = mutableListOf<Grid>()
         var currentGrid: Grid = mutableListOf()
         input.forEach {
-            if (it.isBlank()) {
+            if (it.isEmpty()) {
                 grids.add(currentGrid)
                 currentGrid = mutableListOf()
             } else {
@@ -58,12 +64,24 @@ fun main() {
         grids.add(currentGrid)
 
         return grids.sumOf {
-            (findHorizontalSymmetry(it) * 100) + findVerticalSymmetry(it)
+            (findSymmetry(it, false) * 100) + findSymmetry(it, true)
         }
     }
 
     fun part2(input: List<String>): Int {
-        return 0
+        val grids = mutableListOf<Grid>()
+        var currentGrid: Grid = mutableListOf()
+        input.forEach {
+            if (it.isEmpty()) {
+                grids.add(currentGrid)
+                currentGrid = mutableListOf()
+            } else {
+                currentGrid.addLast(it)
+            }
+        }
+        grids.add(currentGrid)
+
+        return grids.sumOf(::modifyGridAndGetSymmetry)
     }
 
     val input = readInput("day13")
