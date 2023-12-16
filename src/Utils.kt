@@ -44,4 +44,12 @@ fun <T> List<List<T>>.transpose(): List<List<T>> {
     return (this[0].indices).map { i -> (this.indices).map { j -> this[j][i] } }
 }
 
+fun <T> List<List<T>>.formattedString(): String {
+    return this.joinToString("\n") { row -> row.joinToString("") { it.toString() } }
+}
+
+fun <T> List<List<T>>.formattedString(printer: (T) -> String): String {
+    return this.joinToString("\n") { row -> row.joinToString("", transform = printer) }
+}
+
 fun Boolean.toInt() = if (this) 1 else 0
