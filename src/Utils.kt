@@ -53,3 +53,7 @@ fun <T> List<List<T>>.formattedString(printer: (T) -> String): String {
 }
 
 fun Boolean.toInt() = if (this) 1 else 0
+
+enum class Direction {
+    UP, DOWN, LEFT, RIGHT
+}

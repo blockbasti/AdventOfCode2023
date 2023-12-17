@@ -1,5 +1,6 @@
 package day16
 
+import Direction
 import day16.Symbol.*
 import formattedString
 import println
@@ -24,10 +25,6 @@ private enum class Symbol(val symbol: Char) {
     override fun toString(): String {
         return "$symbol"
     }
-}
-
-private enum class Direction {
-    UP, DOWN, LEFT, RIGHT
 }
 
 private class Beam(var x: Int, var y: Int, var direction: Direction) {
